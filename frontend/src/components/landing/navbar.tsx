@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
-import { IconBrain, IconMenu2, IconX } from "@tabler/icons-react"
+import { IconMenu2, IconX } from "@tabler/icons-react"
+import Logo from "@/components/ui/logo"
 
 const navLinks = [
   { label: "Features", href: "#features" },
@@ -41,17 +42,7 @@ export default function Navbar() {
     >
       <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2.5 group">
-          <div
-            className="w-7 h-7 rounded-lg flex items-center justify-center"
-            style={{ background: "var(--orange)" }}
-          >
-            <IconBrain size={15} color="#000" />
-          </div>
-          <span className="font-semibold text-[15px]" style={{ color: "var(--text-1)" }}>
-            Neural<span style={{ color: "var(--orange)" }}>Sheet</span>
-          </span>
-        </Link>
+        <Logo size="md" />
 
         {/* Desktop nav */}
         <nav className="hidden md:flex items-center gap-1">

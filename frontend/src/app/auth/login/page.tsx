@@ -7,8 +7,9 @@ import { useRouter } from "next/navigation"
 import { authApi } from "@/lib/api"
 import { useAuthStore } from "@/store/auth"
 import { fadeUp, stagger } from "@/lib/motion"
+import Logo from "@/components/ui/logo"
 import {
-  IconBrain, IconBrandGoogle,
+  IconBrandGoogle,
   IconEye, IconEyeOff, IconArrowRight,
   IconChartBar, IconSparkles, IconDatabase,
 } from "@tabler/icons-react"
@@ -67,14 +68,7 @@ export default function LoginPage() {
         />
 
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2.5 relative z-10">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "var(--orange)" }}>
-            <IconBrain size={16} color="#000" />
-          </div>
-          <span className="font-semibold text-[16px]" style={{ color: "var(--text-1)" }}>
-            Neural<span style={{ color: "var(--orange)" }}>Sheet</span>
-          </span>
-        </Link>
+        <Logo size="md" />
 
         {/* Middle */}
         <div className="relative z-10">
@@ -138,13 +132,8 @@ export default function LoginPage() {
           className="w-full max-w-[400px]"
         >
           {/* Mobile logo */}
-          <motion.div variants={fadeUp} className="flex items-center gap-2 mb-8 lg:hidden">
-            <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "var(--orange)" }}>
-              <IconBrain size={14} color="#000" />
-            </div>
-            <span className="font-semibold" style={{ color: "var(--text-1)" }}>
-              Neural<span style={{ color: "var(--orange)" }}>Sheet</span>
-            </span>
+          <motion.div variants={fadeUp} className="mb-8 lg:hidden">
+            <Logo size="sm" />
           </motion.div>
 
           {/* Header */}

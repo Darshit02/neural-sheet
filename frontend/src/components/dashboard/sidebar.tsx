@@ -7,8 +7,9 @@ import { motion, AnimatePresence } from "framer-motion"
 import { useAuthStore } from "@/store/auth"
 import { authApi } from "@/lib/api"
 import { useRouter } from "next/navigation"
+import Logo from "@/components/ui/logo"
 import {
-  IconBrain, IconLayoutDashboard, IconFolder,
+  IconLayoutDashboard, IconFolder,
   IconDatabase, IconChartBar, IconSettings,
   IconLogout, IconChevronDown, IconPlus,
   IconSparkles, IconApi, IconUser,
@@ -70,14 +71,7 @@ export default function Sidebar() {
     >
       {/* Logo */}
       <div className="px-4 h-14 flex items-center" style={{ borderBottom: "1px solid var(--border)" }}>
-        <Link href="/" className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "var(--orange)" }}>
-            <IconBrain size={15} color="#000" />
-          </div>
-          <span className="font-semibold text-[14px]" style={{ color: "var(--text-1)" }}>
-            Neural<span style={{ color: "var(--orange)" }}>Sheet</span>
-          </span>
-        </Link>
+        <Logo size="sm" />
       </div>
 
       {/* Search */}
