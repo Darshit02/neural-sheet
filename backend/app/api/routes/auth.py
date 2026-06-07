@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from datetime import datetime
+import random
 from loguru import logger
 
 from app.db.session import get_db
@@ -31,6 +32,7 @@ async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db))
         email=payload.email,
         full_name=payload.full_name,
         hashed_password=get_password_hash(payload.password),
+        avatar_url=f"/profile-images/{random.randint(1, 9)}.jpeg",
         auth_provider=AuthProvider.EMAIL,
         is_active=True,
         is_verified=False,
@@ -160,7 +162,7 @@ async def google_callback(code: str, db: AsyncSession = Depends(get_db)):
         user = User(
             email=google_user["email"],
             full_name=google_user.get("name"),
-            avatar_url=google_user.get("picture"),
+            avatar_url=google_user.get("picture") or f"/profile-images/{random.randint(1, 9)}.jpeg",
             google_id=google_user["id"],
             auth_provider=AuthProvider.GOOGLE,
             is_active=True,

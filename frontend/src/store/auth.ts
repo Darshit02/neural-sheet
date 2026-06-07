@@ -2,7 +2,7 @@ import { create } from "zustand"
 import { persist } from "zustand/middleware"
 
 interface User {
-  id: number
+  id: string
   email: string
   full_name?: string
   avatar_url?: string
@@ -18,6 +18,8 @@ interface AuthStore {
   setTokens: (access: string, refresh: string) => void
   setUser: (user: User) => void
   logout: () => void
+  _hasHydrated: boolean
+  setHasHydrated: (state: boolean) => void
 }
 
 export const useAuthStore = create<AuthStore>()(
@@ -27,6 +29,7 @@ export const useAuthStore = create<AuthStore>()(
       access_token: null,
       refresh_token: null,
       isAuthenticated: false,
+      _hasHydrated: false,
 
       setTokens: (access, refresh) => {
         localStorage.setItem("access_token", access)
@@ -41,7 +44,14 @@ export const useAuthStore = create<AuthStore>()(
         localStorage.removeItem("refresh_token")
         set({ user: null, access_token: null, refresh_token: null, isAuthenticated: false })
       },
+
+      setHasHydrated: (state) => set({ _hasHydrated: state }),
     }),
-    { name: "neuralsheet-auth" }
+    {
+      name: "neuralsheet-auth",
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true)
+      },
+    }
   )
 )

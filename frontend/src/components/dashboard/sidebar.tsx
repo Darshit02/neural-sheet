@@ -157,10 +157,18 @@ export default function Sidebar() {
           style={{ background: "var(--bg-2)", border: "1px solid var(--border)" }}
         >
           <div
-            className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-semibold shrink-0"
-            style={{ background: "var(--orange-dim)", color: "var(--orange)", border: "1px solid var(--orange-border)" }}
+            className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-semibold shrink-0 overflow-hidden"
+            style={{ background: "var(--orange-dim)", color: "var(--orange)"}}
           >
-            {user?.full_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || "U"}
+            {user?.avatar_url ? (
+              <img 
+                src={user.avatar_url} 
+                alt={user.full_name || "User"} 
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              user?.full_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || "U"
+            )}
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-[12px] font-medium truncate" style={{ color: "var(--text-1)" }}>

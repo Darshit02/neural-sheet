@@ -63,14 +63,21 @@ export default function Topbar() {
 
         {/* Avatar */}
         <div
-          className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-semibold cursor-pointer"
+          className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-semibold cursor-pointer overflow-hidden"
           style={{
             background: "var(--orange-dim)",
             color: "var(--orange)",
-            border: "1px solid var(--orange-border)",
           }}
         >
-          {user?.full_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || "U"}
+          {user?.avatar_url ? (
+            <img 
+              src={user.avatar_url} 
+              alt={user.full_name || "User"} 
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            user?.full_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || "U"
+          )}
         </div>
       </div>
     </header>
