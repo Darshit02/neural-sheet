@@ -8,6 +8,9 @@ interface User {
   avatar_url?: string
   tier: string
   has_api_key: boolean
+  is_active: boolean
+  is_verified: boolean
+  auth_provider: string
 }
 
 interface AuthStore {

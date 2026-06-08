@@ -46,6 +46,10 @@ export const authApi = {
   me: () => api.get("/auth/me"),
 };
 
+export const usersApi = {
+  updateProfile: (data: any) => api.patch("/users/me", data),
+};
+
 export const projectsApi = {
   list: () => api.get("/projects/"),
   create: (data: any) => api.post("/projects/", data),

@@ -5,7 +5,7 @@ import { useQuery, useMutation } from "@tanstack/react-query"
 import { aiApi, providersApi } from "@/lib/api"
 import { toast } from "sonner"
 import {
-  IconSparkles, IconSend, IconRobot,
+  IconSparkles, IconSend, IconMessage2Bolt,
   IconMathFunction, IconWand, IconBrain,
   IconChevronDown, IconCode, IconCheck,
 } from "@tabler/icons-react"
@@ -309,7 +309,7 @@ function ChatTab({ datasetId, providerId }: { datasetId: number; providerId: num
       <div className="h-96 overflow-y-auto p-5 space-y-4" style={{ background: "var(--bg-1)" }}>
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-center">
-            <IconRobot size={28} className="mb-3" style={{ color: "var(--text-3)" }} />
+            <IconMessage2Bolt size={28} className="mb-3" style={{ color: "var(--text-3)" }} />
             <p className="text-[14px] font-medium mb-1" style={{ color: "var(--text-1)" }}>
               Chat with your dataset
             </p>

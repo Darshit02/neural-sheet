@@ -12,7 +12,7 @@ import {
   IconArrowLeft, IconFileTypeCsv, IconCircleCheck,
   IconClock, IconAlertCircle, IconChartBar,
   IconDatabase, IconSparkles, IconMathFunction,
-  IconRobot, IconWand, IconRefresh,
+  IconMessage2Bolt, IconWand, IconRefresh,
   IconTable, IconChartDots, IconBrain,
 } from "@tabler/icons-react"
 import Link from "next/link"
@@ -25,7 +25,7 @@ const tabs = [
   { id: "charts",   icon: IconChartBar,  label: "Charts" },
   { id: "features", icon: IconSparkles,  label: "Features" },
   { id: "hyperparams", icon: IconMathFunction, label: "Hyperparams" },
-  { id: "chat",     icon: IconRobot,     label: "AI Chat" },
+  { id: "chat",     icon: IconMessage2Bolt,     label: "AI Chat" },
   { id: "models",   icon: IconWand,      label: "Models" },
 ]
 
