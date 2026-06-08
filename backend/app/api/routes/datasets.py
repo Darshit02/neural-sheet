@@ -8,10 +8,12 @@ from app.db.session import get_db
 from app.db.models.user import User
 from app.db.models.dataset import Dataset, DatasetStatus
 from app.db.models.project import Project
+from app.db.models.activity import ActivityType, NotificationType
 from app.schemas.dataset import DatasetResponse, DatasetDetailResponse
 from app.core.dependencies import get_current_active_user
 from app.services.csv.storage import save_upload, delete_file
 from app.services.csv.profiler import profile_dataset
+from app.services.activity import log_activity, log_both
 
 router = APIRouter()
 
@@ -24,7 +26,6 @@ async def upload_dataset(
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
 ):
-    # Validate project ownership
     if project_id:
         result = await db.execute(
             select(Project).where(
@@ -35,10 +36,8 @@ async def upload_dataset(
         if not result.scalar_one_or_none():
             raise HTTPException(status_code=404, detail="Project not found")
 
-    # Save file
     file_info = await save_upload(file, current_user.id)
 
-    # Create dataset record
     dataset = Dataset(
         owner_id=current_user.id,
         project_id=project_id,
@@ -52,27 +51,64 @@ async def upload_dataset(
     db.add(dataset)
     await db.flush()
 
-    # Profile the dataset
     try:
         profile = profile_dataset(file_info["file_path"])
-        dataset.row_count = profile["row_count"]
-        dataset.column_count = profile["column_count"]
-        dataset.columns = profile["columns"]
-        dataset.dtypes = profile["dtypes"]
+        dataset.row_count      = profile["row_count"]
+        dataset.column_count   = profile["column_count"]
+        dataset.columns        = profile["columns"]
+        dataset.dtypes         = profile["dtypes"]
         dataset.missing_values = profile["missing_values"]
-        dataset.sample_data = profile["sample_data"]
-        dataset.numeric_stats = profile["numeric_stats"]
+        dataset.sample_data    = profile["sample_data"]
+        dataset.numeric_stats  = profile["numeric_stats"]
         dataset.categorical_stats = profile["categorical_stats"]
         dataset.profile_summary = profile
-        dataset.status = DatasetStatus.READY
+        dataset.status          = DatasetStatus.READY
+
+        missing_pct = round(
+            sum(profile["missing_values"].values()) /
+            max(profile["row_count"] * profile["column_count"], 1) * 100, 1
+        )
+
+        await log_both(
+            db,
+            user_id=current_user.id,
+            activity_type=ActivityType.DATASET_PROFILED,
+            activity_label="Uploaded and profiled",
+            notif_type=NotificationType.SUCCESS,
+            notif_title=f"Dataset ready — {dataset.name}",
+            target=dataset.name,
+            target_id=dataset.id,
+            notif_desc=f"{profile['row_count']:,} rows · {profile['column_count']} cols · {missing_pct}% missing",
+            href=f"/dashboard/datasets/{dataset.id}",
+            meta={"row_count": profile["row_count"], "column_count": profile["column_count"]},
+        )
+
+        if missing_pct > 20:
+            from app.services.activity.service import log_notification
+            await log_notification(
+                db,
+                user_id=current_user.id,
+                type=NotificationType.WARNING,
+                title=f"High missing values in {dataset.name}",
+                desc=f"{missing_pct}% of cells are missing — consider cleaning before analysis",
+                href=f"/dashboard/datasets/{dataset.id}",
+            )
+
     except Exception as e:
         logger.error(f"Profiling failed: {e}")
         dataset.status = DatasetStatus.FAILED
         dataset.error_message = str(e)
+        from app.services.activity.service import log_notification
+        await log_notification(
+            db,
+            user_id=current_user.id,
+            type=NotificationType.ERROR,
+            title=f"Failed to profile {dataset.name}",
+            desc=str(e),
+        )
 
     await db.commit()
     await db.refresh(dataset)
-    logger.info(f"Dataset uploaded: {dataset.name} by {current_user.email}")
     return dataset
 
 
@@ -98,7 +134,7 @@ async def get_dataset(
     result = await db.execute(
         select(Dataset).where(
             Dataset.id == dataset_id,
-            Dataset.owner_id == current_user.id
+            Dataset.owner_id == current_user.id,
         )
     )
     dataset = result.scalar_one_or_none()
@@ -116,13 +152,22 @@ async def delete_dataset(
     result = await db.execute(
         select(Dataset).where(
             Dataset.id == dataset_id,
-            Dataset.owner_id == current_user.id
+            Dataset.owner_id == current_user.id,
         )
     )
     dataset = result.scalar_one_or_none()
     if not dataset:
         raise HTTPException(status_code=404, detail="Dataset not found")
 
+    name = dataset.name
     delete_file(dataset.file_path)
     await db.delete(dataset)
+
+    await log_activity(
+        db,
+        user_id=current_user.id,
+        type=ActivityType.DATASET_DELETED,
+        label="Deleted dataset",
+        target=name,
+    )
     await db.commit()

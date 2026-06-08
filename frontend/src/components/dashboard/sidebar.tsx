@@ -37,7 +37,6 @@ const navSections = [
     items: [
       { icon: IconApi, label: "API Providers", href: "/dashboard/settings/providers" },
       { icon: IconUser, label: "Profile", href: "/dashboard/settings/profile" },
-      { icon: IconSettings, label: "Settings", href: "/dashboard/settings" },
     ],
   },
 ]

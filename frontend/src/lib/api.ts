@@ -102,3 +102,12 @@ export const vizApi = {
     api.get(`/visualizations/${id}/boxplot/${col}`),
   columns: (id: number) => api.get(`/visualizations/${id}/columns`),
 };
+
+export const activityApi = {
+  getActivities:      (limit = 20) => api.get(`/me/activities?limit=${limit}`),
+  getNotifications:   () => api.get("/me/notifications"),
+  getUnreadCount:     () => api.get("/me/notifications/unread-count"),
+  markRead:           (ids?: number[]) => api.post("/me/notifications/mark-read", { ids }),
+  deleteNotification: (id: number) => api.delete(`/me/notifications/${id}`),
+  clearAll:           () => api.delete("/me/notifications"),
+}

@@ -4,13 +4,11 @@ from sqlalchemy import select
 from app.db.session import get_db
 from app.db.models.user import User
 from app.db.models.api_provider import APIProvider, ProviderName
-from app.schemas.api_provider import (
-    AddProviderRequest, ProviderResponse,
-    ProviderListItem, PROVIDER_META
-)
+from app.db.models.activity import ActivityType, NotificationType
+from app.schemas.api_provider import AddProviderRequest, ProviderResponse, ProviderListItem, PROVIDER_META
 from app.core.dependencies import get_current_active_user
 from app.core.security import encrypt_api_key, decrypt_api_key
-from app.services.ai import get_ai_provider
+from app.services.activity import log_activity, log_both
 from typing import List
 from loguru import logger
 
@@ -19,12 +17,8 @@ router = APIRouter()
 
 @router.get("/available", response_model=List[ProviderListItem])
 async def list_available_providers():
-    """List all supported AI providers with metadata"""
     return [
-        ProviderListItem(
-            provider=provider,
-            **meta
-        )
+        ProviderListItem(provider=provider, **meta)
         for provider, meta in PROVIDER_META.items()
     ]
 
@@ -38,7 +32,6 @@ async def list_my_providers(
         select(APIProvider).where(APIProvider.user_id == current_user.id)
     )
     providers = result.scalars().all()
-
     response = []
     for p in providers:
         try:
@@ -46,17 +39,11 @@ async def list_my_providers(
             masked = f"{key[:8]}...{key[-4:]}"
         except Exception:
             masked = "****...****"
-
         meta = PROVIDER_META.get(p.provider, {})
         response.append(ProviderResponse(
-            id=p.id,
-            provider=p.provider,
-            label=p.label,
-            is_active=p.is_active,
-            is_default=p.is_default,
-            masked_key=masked,
-            meta=meta,
-            created_at=p.created_at,
+            id=p.id, provider=p.provider, label=p.label,
+            is_active=p.is_active, is_default=p.is_default,
+            masked_key=masked, meta=meta, created_at=p.created_at,
         ))
     return response
 
@@ -67,36 +54,14 @@ async def add_provider(
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
 ):
-    # Get metadata
     meta = PROVIDER_META.get(payload.provider, {})
-
-    # Optional: Validate API key format (warning only)
     prefix = meta.get("key_prefix")
     if prefix and not payload.api_key.startswith(prefix):
-        logger.warning(f"API key for {payload.provider} does not match expected prefix {prefix}")
-
-    # Real validation check
-    try:
-        provider_instance = get_ai_provider(payload.provider, payload.api_key)
-        is_valid = await provider_instance.validate_key()
-        if not is_valid:
-            raise HTTPException(
-                status_code=400,
-                detail=f"The API key provided for {payload.provider} is invalid. Please check and try again.",
-            )
-    except Exception as e:
-        logger.error(f"Validation failed for {payload.provider}: {str(e)}")
-        # If it's a specific HTTPException from above, re-raise it
-        if isinstance(e, HTTPException):
-            raise e
-        # For other errors, we might still want to allow adding it if the validation call itself failed
-        # but let's be strict for now as requested.
         raise HTTPException(
             status_code=400,
-            detail=f"Could not validate API key for {payload.provider}. Error: {str(e)}",
+            detail=f"Invalid API key format. Expected prefix: {prefix}",
         )
 
-    # If setting as default, unset others
     if payload.is_default:
         result = await db.execute(
             select(APIProvider).where(
@@ -115,22 +80,30 @@ async def add_provider(
         is_default=payload.is_default or False,
     )
     db.add(provider)
+    await db.flush()
+
+    await log_both(
+        db,
+        user_id=current_user.id,
+        activity_type=ActivityType.PROVIDER_ADDED,
+        activity_label="Added AI provider",
+        notif_type=NotificationType.SUCCESS,
+        notif_title=f"{meta.get('label', payload.provider)} key added",
+        target=meta.get("label", payload.provider),
+        target_id=provider.id,
+        notif_desc="Your API key is encrypted and ready to use for AI analysis.",
+        href="/dashboard/settings/providers",
+    )
+
     await db.commit()
     await db.refresh(provider)
 
     key = decrypt_api_key(provider.encrypted_key)
     masked = f"{key[:8]}...{key[-4:]}"
-
-    logger.info(f"Provider {payload.provider} added by {current_user.email}")
     return ProviderResponse(
-        id=provider.id,
-        provider=provider.provider,
-        label=provider.label,
-        is_active=provider.is_active,
-        is_default=provider.is_default,
-        masked_key=masked,
-        meta=meta,
-        created_at=provider.created_at,
+        id=provider.id, provider=provider.provider, label=provider.label,
+        is_active=provider.is_active, is_default=provider.is_default,
+        masked_key=masked, meta=meta, created_at=provider.created_at,
     )
 
 
@@ -157,7 +130,7 @@ async def set_default_provider(
         p.is_default = p.id == provider_id
 
     await db.commit()
-    return {"message": f"{provider.provider} set as default provider"}
+    return {"message": f"{provider.provider} set as default"}
 
 
 @router.delete("/{provider_id}", status_code=204)
@@ -176,32 +149,13 @@ async def delete_provider(
     if not provider:
         raise HTTPException(status_code=404, detail="Provider not found")
 
+    name = provider.label or provider.provider
     await db.delete(provider)
-    await db.commit()
-
-
-@router.post("/{provider_id}/validate")
-async def validate_provider_key(
-    provider_id: int,
-    current_user: User = Depends(get_current_active_user),
-    db: AsyncSession = Depends(get_db),
-):
-    result = await db.execute(
-        select(APIProvider).where(
-            APIProvider.id == provider_id,
-            APIProvider.user_id == current_user.id,
-        )
+    await log_activity(
+        db,
+        user_id=current_user.id,
+        type=ActivityType.PROVIDER_DELETED,
+        label="Removed AI provider",
+        target=name,
     )
-    provider_record = result.scalar_one_or_none()
-    if not provider_record:
-        raise HTTPException(status_code=404, detail="Provider not found")
-
-    api_key = decrypt_api_key(provider_record.encrypted_key)
-    provider = get_ai_provider(provider_record.provider, api_key)
-    is_valid = await provider.validate_key()
-
-    return {
-        "provider": provider_record.provider,
-        "is_valid": is_valid,
-        "message": "API key is valid" if is_valid else "API key is invalid",
-    }
+    await db.commit()
