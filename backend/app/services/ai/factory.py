@@ -7,12 +7,11 @@ from app.services.ai.providers import (
 DEFAULT_MODELS = {
     ProviderName.ANTHROPIC: "claude-sonnet-4-5",
     ProviderName.OPENAI: "gpt-4o",
-    ProviderName.GEMINI: "gemini-1.5-pro",
+    ProviderName.GEMINI: "gemini-2.5-flash",
     ProviderName.MISTRAL: "mistral-large-latest",
     ProviderName.COHERE: "command-r-plus",
     ProviderName.GROQ: "llama-3.1-70b-versatile",
 }
-
 
 def get_ai_provider(
     provider_name: ProviderName,

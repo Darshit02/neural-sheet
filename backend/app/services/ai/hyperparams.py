@@ -1,6 +1,7 @@
 import json
 from typing import Dict, Any
 from app.services.ai.base import BaseAIProvider
+from app.utils.helpers import extract_json
 from loguru import logger
 
 SYSTEM_PROMPT = """You are an expert ML engineer specializing in hyperparameter optimization.
@@ -77,11 +78,7 @@ async def get_hyperparameter_guide(
     prompt = build_hyperparam_prompt(profile, model_type, task_type)
     try:
         response = await provider.complete(SYSTEM_PROMPT, prompt, max_tokens=3000)
-        clean = response.strip().replace("```json", "").replace("```", "")
-        return json.loads(clean)
-    except json.JSONDecodeError as e:
-        logger.error(f"Hyperparams JSON parse error: {e}")
-        return {"error": "Failed to parse AI response", "raw": response}
+        return extract_json(response)
     except Exception as e:
         logger.error(f"Hyperparams error: {e}")
-        raise
+        return {"error": "Failed to parse AI response", "detail": str(e), "raw": locals().get('response', '')}

@@ -1,6 +1,7 @@
 import json
 from typing import Dict, Any, List, AsyncGenerator
 from app.services.ai.base import BaseAIProvider
+from app.utils.helpers import extract_json
 from loguru import logger
 
 
@@ -80,8 +81,7 @@ Respond ONLY with this JSON:
 """
     try:
         response = await provider.complete(system, prompt, max_tokens=2000)
-        clean = response.strip().replace("```json", "").replace("```", "")
-        return json.loads(clean)
+        return extract_json(response)
     except Exception as e:
         logger.error(f"Model recommendation error: {e}")
-        raise
+        return {"error": "Failed to parse AI response", "detail": str(e), "raw": locals().get('response', '')}
