@@ -119,37 +119,43 @@ async def suggest_hyperparams(
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
 ):
-    dataset = await get_dataset_or_404(payload.dataset_id, current_user, db)
-    provider, provider_record = await get_provider_and_key(
-        payload.provider_id, current_user, db
-    )
+    try:
+        dataset = await get_dataset_or_404(payload.dataset_id, current_user, db)
+        provider, provider_record = await get_provider_and_key(
+            payload.provider_id, current_user, db
+        )
 
-    start = time.time()
-    result = await get_hyperparameter_guide(
-        provider, dataset.profile_summary, payload.model_type, payload.task_type
-    )
-    elapsed = int((time.time() - start) * 1000)
+        start = time.time()
+        result = await get_hyperparameter_guide(
+            provider, dataset.profile_summary, payload.model_type, payload.task_type
+        )
+        elapsed = int((time.time() - start) * 1000)
 
-    analysis = Analysis(
-        dataset_id=dataset.id,
-        user_id=current_user.id,
-        analysis_type=AnalysisType.HYPERPARAMETER_TUNING,
-        status=AnalysisStatus.COMPLETED,
-        prompt=f"{payload.model_type} for {payload.task_type}",
-        result=result,
-        model_used=provider.model,
-        processing_time_ms=elapsed,
-    )
-    db.add(analysis)
-    await db.commit()
+        analysis = Analysis(
+            dataset_id=dataset.id,
+            user_id=current_user.id,
+            analysis_type=AnalysisType.HYPERPARAMETER_TUNING,
+            status=AnalysisStatus.COMPLETED,
+            prompt=f"{payload.model_type} for {payload.task_type}",
+            result=result,
+            model_used=provider.model,
+            processing_time_ms=elapsed,
+        )
+        db.add(analysis)
+        await db.commit()
 
-    logger.info(f"Hyperparams generated for dataset {dataset.id} in {elapsed}ms")
-    return AIResponse(
-        result=result,
-        provider_used=provider_record.provider,
-        model_used=provider.model,
-        dataset_id=dataset.id,
-    )
+        logger.info(f"Hyperparams generated for dataset {dataset.id} in {elapsed}ms")
+        return AIResponse(
+            result=result,
+            provider_used=provider_record.provider,
+            model_used=provider.model,
+            dataset_id=dataset.id,
+        )
+    except Exception as e:
+        logger.error(f"Hyperparams route error: {str(e)}")
+        if isinstance(e, HTTPException):
+            raise e
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/chat")

@@ -10,6 +10,7 @@ from app.schemas.api_provider import (
 )
 from app.core.dependencies import get_current_active_user
 from app.core.security import encrypt_api_key, decrypt_api_key
+from app.services.ai import get_ai_provider
 from typing import List
 from loguru import logger
 
@@ -66,13 +67,33 @@ async def add_provider(
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
 ):
-    # Validate key prefix
+    # Get metadata
     meta = PROVIDER_META.get(payload.provider, {})
+
+    # Optional: Validate API key format (warning only)
     prefix = meta.get("key_prefix")
     if prefix and not payload.api_key.startswith(prefix):
+        logger.warning(f"API key for {payload.provider} does not match expected prefix {prefix}")
+
+    # Real validation check
+    try:
+        provider_instance = get_ai_provider(payload.provider, payload.api_key)
+        is_valid = await provider_instance.validate_key()
+        if not is_valid:
+            raise HTTPException(
+                status_code=400,
+                detail=f"The API key provided for {payload.provider} is invalid. Please check and try again.",
+            )
+    except Exception as e:
+        logger.error(f"Validation failed for {payload.provider}: {str(e)}")
+        # If it's a specific HTTPException from above, re-raise it
+        if isinstance(e, HTTPException):
+            raise e
+        # For other errors, we might still want to allow adding it if the validation call itself failed
+        # but let's be strict for now as requested.
         raise HTTPException(
             status_code=400,
-            detail=f"Invalid API key format for {payload.provider}. Expected prefix: {prefix}",
+            detail=f"Could not validate API key for {payload.provider}. Error: {str(e)}",
         )
 
     # If setting as default, unset others
@@ -157,3 +178,30 @@ async def delete_provider(
 
     await db.delete(provider)
     await db.commit()
+
+
+@router.post("/{provider_id}/validate")
+async def validate_provider_key(
+    provider_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(APIProvider).where(
+            APIProvider.id == provider_id,
+            APIProvider.user_id == current_user.id,
+        )
+    )
+    provider_record = result.scalar_one_or_none()
+    if not provider_record:
+        raise HTTPException(status_code=404, detail="Provider not found")
+
+    api_key = decrypt_api_key(provider_record.encrypted_key)
+    provider = get_ai_provider(provider_record.provider, api_key)
+    is_valid = await provider.validate_key()
+
+    return {
+        "provider": provider_record.provider,
+        "is_valid": is_valid,
+        "message": "API key is valid" if is_valid else "API key is invalid",
+    }

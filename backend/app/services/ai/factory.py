@@ -30,6 +30,10 @@ def get_ai_provider(
 
     provider_class = providers.get(provider_name)
     if not provider_class:
+        # Fallback to OpenAI if not specifically implemented but in DEFAULT_MODELS
+        # or raise a more descriptive error
+        if provider_name in [ProviderName.MISTRAL, ProviderName.COHERE]:
+             raise ValueError(f"Provider {provider_name} is not yet fully implemented in this version.")
         raise ValueError(f"Provider {provider_name} not yet implemented")
 
     return provider_class(api_key=api_key, model=model)

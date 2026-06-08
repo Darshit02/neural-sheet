@@ -1,4 +1,5 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from loguru import logger
@@ -34,16 +35,27 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Exception Handler to ensure CORS headers are present on errors
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(f"Global exception: {str(exc)}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal Server Error", "message": str(exc)},
+    )
+
 # Middlewares
-app.add_middleware(RequestLoggingMiddleware)
-app.add_middleware(RateLimitMiddleware, calls=100, period=60)
+# CORS should be outermost to ensure headers are added even on errors
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.get_allowed_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
+app.add_middleware(RequestLoggingMiddleware)
+app.add_middleware(RateLimitMiddleware, calls=100, period=60)
 
 # Routes
 app.include_router(api_router, prefix=settings.API_V1_PREFIX)
