@@ -324,7 +324,7 @@ export default function DashboardPage() {
             </p>
             <IconTrendingUp size={14} style={{ color: "var(--text-3)" }} />
           </div>
-          <div className="px-3 py-3">
+          <div className="px-3 py-3 overflow-auto">
             <ActivityFeed />
           </div>
         </motion.div>

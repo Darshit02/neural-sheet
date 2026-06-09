@@ -111,3 +111,55 @@ export const activityApi = {
   deleteNotification: (id: number) => api.delete(`/me/notifications/${id}`),
   clearAll:           () => api.delete("/me/notifications"),
 }
+
+export const cleaningApi = {
+  suggestions: (id: number) =>
+    api.get(`/datasets/clean/${id}/suggestions`),
+  preview: (id: number, operations: any[]) =>
+    api.post(`/datasets/clean/${id}/preview`, { operations }),
+  apply: (id: number, operations: any[], new_name?: string) =>
+    api.post(`/datasets/clean/${id}/apply`, { operations, save_as_new: true, new_name }),
+  download: (id: number, operations: any[]) =>
+    api.post(`/datasets/clean/${id}/download`, { operations }, { responseType: "blob" }),
+}
+
+export const reportApi = {
+  generate: (datasetId: number) =>
+    api.post(`/pipeline/report/${datasetId}`),
+  download: (datasetId: number) =>
+    api.post(`/pipeline/report/${datasetId}/download`, {}, { responseType: "blob" }),
+}
+
+export const transformApi = {
+  preview: (datasetId: number, transformations: any[]) =>
+    api.post(`/pipeline/transform/${datasetId}/preview`, { transformations }),
+  apply: (datasetId: number, transformations: any[], new_name?: string) =>
+    api.post(`/pipeline/transform/${datasetId}/apply`, { transformations, save_as_new: true, new_name }),
+  download: (datasetId: number, transformations: any[]) =>
+    api.post(`/pipeline/transform/${datasetId}/download`, { transformations }, { responseType: "blob" }),
+}
+
+export const mergeApi = {
+  suggestions: (datasetId: number, rightId: number) =>
+    api.get(`/pipeline/merge/${datasetId}/suggestions?right_id=${rightId}`),
+  preview: (datasetId: number, payload: any) =>
+    api.post(`/pipeline/merge/${datasetId}/preview`, payload),
+  apply: (datasetId: number, payload: any) =>
+    api.post(`/pipeline/merge/${datasetId}/apply`, payload),
+}
+
+export const schemaApi = {
+  validate: (datasetId: number, rules: any[]) =>
+    api.post(`/pipeline/schema/${datasetId}/validate`, { rules }),
+  save: (datasetId: number, rules: any[], schema_name?: string) =>
+    api.post(`/pipeline/schema/${datasetId}/save`, { rules, schema_name }),
+  listSaved: () => api.get(`/pipeline/schema/saved`),
+}
+
+export const templatesApi = {
+  list: () => api.get("/pipeline-templates/"),
+  create: (data: any) => api.post("/pipeline-templates/", data),
+  get: (id: number) => api.get(`/pipeline-templates/${id}`),
+  update: (id: number, data: any) => api.patch(`/pipeline-templates/${id}`, data),
+  delete: (id: number) => api.delete(`/pipeline-templates/${id}`),
+}

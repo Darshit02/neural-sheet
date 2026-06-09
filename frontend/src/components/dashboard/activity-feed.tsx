@@ -22,7 +22,7 @@ const TYPE_CONFIG: Record<string, { icon: any; color: string; verb: string }> = 
   provider_deleted:   { icon: IconTrash,        color: "#f87171",       verb: "Removed provider" },
   ai_features:        { icon: IconSparkles,     color: "#8B5CF6",       verb: "Generated features" },
   ai_hyperparams:     { icon: IconMathFunction, color: "#3B82F6",       verb: "Tuned hyperparams" },
-  ai_chat:            { icon: IconMessage2Bolt,        color: "#10B981",       verb: "Chatted with" },
+  ai_chat:            { icon: IconMessage2Bolt, color: "#10B981",       verb: "Chatted with" },
   ai_models:          { icon: IconWand,         color: "#06B6D4",       verb: "Got model recs for" },
   visualization:      { icon: IconChartBar,     color: "#3B82F6",       verb: "Visualized" },
 }
